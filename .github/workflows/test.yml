@@ -10,7 +10,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
       - name: Cleanup
-        run: sed -i "s/%NAME%/test/g" build.sc
+        run: sed -i "s/chisel-rv151/test/g" build.sc
       - name: Setup Scala
         uses: olafurpg/setup-scala@v10
         with:
