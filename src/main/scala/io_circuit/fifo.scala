@@ -9,7 +9,6 @@ import chisel3.util._
  * A FIFO circuit that can allow data to be stored and retrieved in the order which it was received.
  * @param WIDTH -> width of the fifo memory construct
  * @param DEPTH -> depth of the fifo memory construct
- * @param PTR_WIDTH -> width of the write and read counter
  */
 
 class fifo(val WIDTH: Int, val DEPTH: Int) extends Module {
@@ -75,6 +74,9 @@ class fifo(val WIDTH: Int, val DEPTH: Int) extends Module {
     full := wr_ptr.value + 1.U === rd_ptr.value
     empty := wr_ptr.value === rd_ptr.value + 1.U
     rd_ptr.inc()
+  }
+  .elsewhen(io.rd && io.empty) {
+    data_out := 0.U
   }
 
 

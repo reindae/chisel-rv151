@@ -94,6 +94,8 @@ class FifoSpec extends AnyFreeSpec with ChiselScalatestTester {
       dut.clock.step(1)
       dut.io.data_out.expect(31)
       dut.io.empty.expect(true.B) 
+      dut.clock.step(1)
+      dut.io.data_out.expect(0)
 
     }
   }
