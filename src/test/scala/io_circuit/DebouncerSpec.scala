@@ -53,7 +53,26 @@ class DebouncerSpec extends AnyFreeSpec with ChiselScalatestTester {
       dut.io.debounced_sigOut.expect(1.U)
       dut.clock.step(1)
 
-      
+      // While the glitchy signal is high, the debounced output should remain high
+      for (_ <- 0 until 3) {
+        dut.io.debounced_sigOut.expect(1.U)
+        dut.clock.step(1)
+      }
+
+      // Pull the glitchy signal low and the output should fall after the next sampling period
+      // The output is only guaranteed to fall after the next sampling period
+      // Wait until another sampling period has definetely occured
+      dut.io.glitchy_sigIn.poke(0.U)
+      dut.clock.step(dut.SAMPLE_CNT_MAX + 1)
+      dut.clock.step(1)
+      dut.io.debounced_sigOut.expect(0.U)
+      dut.clock.step(1)
+
+      // Wait for some time to ensure the signal stays low
+      for (_ <- 0 until (dut.SAMPLE_CNT_MAX * (dut.PULSE_CNT_MAX + 1))) {
+        dut.io.debounced_sigOut.expect(0.U)
+        dut.clock.step(1)
+      }
 
     }
   }

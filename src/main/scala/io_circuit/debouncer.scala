@@ -39,10 +39,6 @@ class debouncer(val WIDTH: Int = 1, val SAMPLE_CNT_MAX: Int = 65000, val PULSE_C
     sat_cnt.reset()
   }
 
-  // when(sat_cnt.value === PULSE_CNT_MAX && io.glitchy_sigIn === 1.U) {
-  //   sat_cnt.
-  // }
-
   io.debounced_sigOut := sat_cnt.value === PULSE_CNT_MAX.U
 
 }
