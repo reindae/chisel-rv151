@@ -28,7 +28,7 @@ class EdgeDetector(val WIDTH: Int) extends Module {
   for (i <- 0 until WIDTH) {
     delay(i) := RegNext(io.data_in(i))     // test for 2 cycle wide pulse
     // delay(i) := io.data_in(i)
-    when(io.data_in(i) & !delay(i)) {
+    when (io.data_in(i) & !delay(i)) {
       io.data_out(i) := 1.U
     }
     .otherwise {

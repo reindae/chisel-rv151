@@ -12,7 +12,7 @@ import chisel3.experimental.BundleLiterals._
 class DebouncerSpec extends AnyFreeSpec with ChiselScalatestTester {
   "debouncer should smooth out glichy signal inputs to debounced output" in {
 
-    test(new debouncer(1, 10, 4)) { dut =>
+    test(new debouncer(2, 10, 4)) { dut =>
 
       // Initially act glitchy
       for (_ <- 0 until 5) {
@@ -36,26 +36,28 @@ class DebouncerSpec extends AnyFreeSpec with ChiselScalatestTester {
       dut.io.glitchy_sigIn.poke(0.U)
       dut.clock.step(dut.SAMPLE_CNT_MAX * (dut.PULSE_CNT_MAX + 1))
       dut.clock.step(1)
-      dut.io.debounced_sigOut.expect(0.U, "1st debounced_signal didn't stay low")
+      dut.io.debounced_sigOut(0).expect(0.U, "1st debounced_signal didn't stay low")
 
-      // Second signal
+      // We will use the second glitchy_signal to verify that if a signal bounces around and stays high
+      // long enough for the counter to saturate, that the output goes high and stays there until the glitchy_signal falls
+      // Initially act glitchy
       for (_ <- 0 until 5) {
         dut.io.glitchy_sigIn.poke(0.U)
         dut.clock.step(1)
-        dut.io.glitchy_sigIn.poke(1.U)
+        dut.io.glitchy_sigIn.poke(2.U)
         dut.clock.step(1)
       }
 
       // Bring the glitchy signal high and hold past the point at which the debouncer should saturate
-      dut.io.glitchy_sigIn.poke(1.U)
+      dut.io.glitchy_sigIn.poke(2.U)
       dut.clock.step(dut.SAMPLE_CNT_MAX * (dut.PULSE_CNT_MAX + 1))
       dut.clock.step(1)
-      dut.io.debounced_sigOut.expect(1.U)
+      dut.io.debounced_sigOut(1).expect(1.U)
       dut.clock.step(1)
 
       // While the glitchy signal is high, the debounced output should remain high
       for (_ <- 0 until 3) {
-        dut.io.debounced_sigOut.expect(1.U)
+        dut.io.debounced_sigOut(1).expect(1.U)
         dut.clock.step(1)
       }
 
@@ -65,12 +67,12 @@ class DebouncerSpec extends AnyFreeSpec with ChiselScalatestTester {
       dut.io.glitchy_sigIn.poke(0.U)
       dut.clock.step(dut.SAMPLE_CNT_MAX + 1)
       dut.clock.step(1)
-      dut.io.debounced_sigOut.expect(0.U)
+      dut.io.debounced_sigOut(1).expect(0.U)
       dut.clock.step(1)
 
       // Wait for some time to ensure the signal stays low
       for (_ <- 0 until (dut.SAMPLE_CNT_MAX * (dut.PULSE_CNT_MAX + 1))) {
-        dut.io.debounced_sigOut.expect(0.U)
+        dut.io.debounced_sigOut(1).expect(0.U)
         dut.clock.step(1)
       }
 
