@@ -19,7 +19,7 @@ class debouncer(val WIDTH: Int = 1, val SAMPLE_CNT_MAX: Int = 65000, val PULSE_C
      * IO consists of in/out signals
      * The clock has been embedded into Chisel to achieve synchronization 
      */
-    val glitchy_sigIn = Input(UInt(WIDTH.W))
+    val glitchy_sigIn = Input(Vec(WIDTH, UInt(1.W)))
     val debounced_sigOut = Output(Vec(WIDTH, UInt(1.W)))
   })
 

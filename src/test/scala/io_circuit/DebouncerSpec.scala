@@ -16,24 +16,24 @@ class DebouncerSpec extends AnyFreeSpec with ChiselScalatestTester {
 
       // Initially act glitchy
       for (_ <- 0 until 5) {
-        dut.io.glitchy_sigIn.poke(0.U)
+        dut.io.glitchy_sigIn(0).poke(0.U)
         dut.clock.step(1)
-        dut.io.glitchy_sigIn.poke(1.U)
+        dut.io.glitchy_sigIn(0).poke(1.U)
         dut.clock.step(1)
       }
 
       // Drop signal for a full sample period
-      dut.io.glitchy_sigIn.poke(0.U)
+      dut.io.glitchy_sigIn(0).poke(0.U)
       dut.clock.step(dut.SAMPLE_CNT_MAX + 1)
       dut.clock.step(1)
 
       // Bring the signal high and hold until before the saturating counter should saturate, then pull low
-      dut.io.glitchy_sigIn.poke(1.U)
+      dut.io.glitchy_sigIn(0).poke(1.U)
       dut.clock.step(dut.SAMPLE_CNT_MAX * (dut.PULSE_CNT_MAX - 1))
       dut.clock.step(1)
 
       // Pull the signal low and wait, the debouncer shouldn't set its output high
-      dut.io.glitchy_sigIn.poke(0.U)
+      dut.io.glitchy_sigIn(0).poke(0.U)
       dut.clock.step(dut.SAMPLE_CNT_MAX * (dut.PULSE_CNT_MAX + 1))
       dut.clock.step(1)
       dut.io.debounced_sigOut(0).expect(0.U, "1st debounced_signal didn't stay low")
@@ -42,14 +42,14 @@ class DebouncerSpec extends AnyFreeSpec with ChiselScalatestTester {
       // long enough for the counter to saturate, that the output goes high and stays there until the glitchy_signal falls
       // Initially act glitchy
       for (_ <- 0 until 5) {
-        dut.io.glitchy_sigIn.poke(0.U)
+        dut.io.glitchy_sigIn(1).poke(0.U)
         dut.clock.step(1)
-        dut.io.glitchy_sigIn.poke(2.U)
+        dut.io.glitchy_sigIn(1).poke(1.U)
         dut.clock.step(1)
       }
 
       // Bring the glitchy signal high and hold past the point at which the debouncer should saturate
-      dut.io.glitchy_sigIn.poke(2.U)
+      dut.io.glitchy_sigIn(1).poke(1.U)
       dut.clock.step(dut.SAMPLE_CNT_MAX * (dut.PULSE_CNT_MAX + 1))
       dut.clock.step(1)
       dut.io.debounced_sigOut(1).expect(1.U)
@@ -64,7 +64,7 @@ class DebouncerSpec extends AnyFreeSpec with ChiselScalatestTester {
       // Pull the glitchy signal low and the output should fall after the next sampling period
       // The output is only guaranteed to fall after the next sampling period
       // Wait until another sampling period has definetely occured
-      dut.io.glitchy_sigIn.poke(0.U)
+      dut.io.glitchy_sigIn(1).poke(0.U)
       dut.clock.step(dut.SAMPLE_CNT_MAX + 1)
       dut.clock.step(1)
       dut.io.debounced_sigOut(1).expect(0.U)
