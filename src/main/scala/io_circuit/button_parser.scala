@@ -1,12 +1,12 @@
 // See README.md for license details.
 
-package ButtonParser
+package button_parser
 
 import chisel3._
 import chisel3.util._
 import synchronizer._
 import debouncer._
-import EdgeDetector._
+import edge_detector._
 
 /**
  * A button parser circuit that instantiates the synchronizer -> debouncer -> edge detector signal chain for button inputs.
@@ -15,7 +15,7 @@ import EdgeDetector._
  * @param PULSE_CNT_MAX -> pulse counter that count up to PULSE_CNT_MAX and saturate
  */
 
-class ButtonParser(val WIDTH: Int = 1, val SAMPLE_CNT_MAX: Int = 25000, val PULSE_CNT_MAX: Int = 150) extends Module {
+class button_parser(val WIDTH: Int = 1, val SAMPLE_CNT_MAX: Int = 25000, val PULSE_CNT_MAX: Int = 150) extends Module {
   val io = IO(new Bundle {
     /**
      * IO consists of in/out signals
@@ -36,7 +36,7 @@ class ButtonParser(val WIDTH: Int = 1, val SAMPLE_CNT_MAX: Int = 25000, val PULS
   debouncer.io.glitchy_sigIn := synchronized_signals
   debounced_signals := debouncer.io.debounced_sigOut
 
-  val EdgeDetector = Module(new EdgeDetector(WIDTH))
+  val EdgeDetector = Module(new edge_detector(WIDTH))
   EdgeDetector.io.data_in := debounced_signals
   io.data_out := EdgeDetector.io.data_out
 

@@ -1,0 +1,19 @@
+[
+  {
+    "class":"firrtl.EmitCircuitAnnotation",
+    "emitter":"firrtl.VerilogEmitter"
+  },
+  {
+    "class":"firrtl.transforms.BlackBoxTargetDirAnno",
+    "targetDir":"."
+  },
+  {
+    "class":"firrtl.transforms.CombinationalPath",
+    "sink":"~mux_dmem_addr|mux_dmem_addr>io_dmem_addr",
+    "sources":[
+      "~mux_dmem_addr|mux_dmem_addr>io_sel",
+      "~mux_dmem_addr|mux_dmem_addr>io_mem_out",
+      "~mux_dmem_addr|mux_dmem_addr>io_alu_out"
+    ]
+  }
+]

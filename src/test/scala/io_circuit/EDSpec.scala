@@ -1,6 +1,6 @@
 // See README.md for license details.
 
-package EdgeDetector
+package edge_detector
 
 import chisel3._
 import chiseltest._
@@ -43,7 +43,7 @@ class EDSpec extends AnyFreeSpec with ChiselScalatestTester {
     // }
 
     
-    test(new EdgeDetector(2)) { c =>
+    test(new edge_detector(2)) { c =>
       c.io.data_in.poke(1.U)
       c.clock.step(2)
       c.io.data_out(0).expect(0.U)

@@ -1,6 +1,6 @@
 // See README.md for license details.
 
-package EdgeDetector
+package edge_detector
 
 import chisel3._
 import chisel3.util._
@@ -11,7 +11,7 @@ import chisel3.util._
  * @param WIDTH -> width of the data input/output
  */
 
-class EdgeDetector(val WIDTH: Int) extends Module {
+class edge_detector(val WIDTH: Int) extends Module {
   val io = IO(new Bundle {
     /**
      * IO consists of in/out signals
