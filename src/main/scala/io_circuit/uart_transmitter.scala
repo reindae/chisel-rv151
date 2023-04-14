@@ -17,7 +17,6 @@ import chisel3.util._
 class uart_transmitter(val CLOCK_FREQ: Int = 125000000, val BAUD_RATE: Int = 115200) extends Module {
   val io = IO(new Bundle {
 
-    val reset = Input(Bool())
     val data_in = Input(UInt(8.W))
     val valid = Input(Bool())
     val ready = Output(Bool())
@@ -77,9 +76,6 @@ class uart_transmitter(val CLOCK_FREQ: Int = 125000000, val BAUD_RATE: Int = 115
 
 
   //--|Shift Register|----------------------------------------------------------
-  when (io.reset) {
-    io.serial_out := 1.U
-  }
   when (start) {
     io.serial_out := 0.U
     tx_shift := io.data_in
