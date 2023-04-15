@@ -19,7 +19,7 @@ class alu extends Module {
     val result = Output(UInt(32.W))
   })
 
-  io.result := MuxLookup(io.alu_sel, 0.U, Array(
+  io.result := MuxLookup(io.alu_sel, 0.U, Seq(
     opcode.ALU_ADD -> (io.in_A + io.in_B),
     opcode.ALU_SUB -> (io.in_A - io.in_B),
     opcode.ALU_SRA -> (io.in_A.asSInt >> io.in_B(4,0)).asUInt,
