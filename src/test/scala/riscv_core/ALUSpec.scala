@@ -15,47 +15,47 @@ class ALUSpec extends AnyFreeSpec with ChiselScalatestTester {
     test(new alu) { dut =>
         dut.io.in_A.poke(7.U)
         dut.io.in_B.poke(5.U)
-        dut.io.alu_Sel.poke(1.U)
+        dut.io.alu_sel.poke(1.U)
         dut.clock.step(1)
         dut.io.result.expect(12.U)
 
-        dut.io.alu_Sel.poke(2.U)
+        dut.io.alu_sel.poke(2.U)
         dut.clock.step(1)
         dut.io.result.expect(5.U)
 
-        dut.io.alu_Sel.poke(3.U)
+        dut.io.alu_sel.poke(3.U)
         dut.clock.step(1)
         dut.io.result.expect(7.U)
 
-        dut.io.alu_Sel.poke(4.U)
+        dut.io.alu_sel.poke(4.U)
         dut.clock.step(1)
         dut.io.result.expect(2.U)
 
-        dut.io.alu_Sel.poke(5.U)
+        dut.io.alu_sel.poke(5.U)
         dut.clock.step(1)
         dut.io.result.expect(2.U)
 
-        dut.io.alu_Sel.poke(6.U)
+        dut.io.alu_sel.poke(6.U)
         dut.clock.step(1)
         dut.io.result.expect(0.U)
 
-        dut.io.alu_Sel.poke(7.U)
+        dut.io.alu_sel.poke(7.U)
         dut.clock.step(1)
         dut.io.result.expect(224.U)
 
-        dut.io.alu_Sel.poke(8.U)
+        dut.io.alu_sel.poke(8.U)
         dut.clock.step(1)
         dut.io.result.expect(0.U)
 
-        dut.io.alu_Sel.poke(9.U)
+        dut.io.alu_sel.poke(9.U)
         dut.clock.step(1)
         dut.io.result.expect(0.U)
 
-        dut.io.alu_Sel.poke(10.U)
+        dut.io.alu_sel.poke(10.U)
         dut.clock.step(1)
         dut.io.result.expect(0.U)
 
-        dut.io.alu_Sel.poke(11.U)
+        dut.io.alu_sel.poke(11.U)
         dut.clock.step(1)
         dut.io.result.expect(5.U)
 
