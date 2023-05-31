@@ -10,12 +10,13 @@ import chisel3.stage.ChiselStage
  * A uart transmitter circuit (a fifo_rx) that receives a 8-bit word from a producer block on FPGA via the ready-valid interface.
  * Once we have a 8-bit word that we want to send (i.e., once valid is high, and the transmitter is ready),
  * transmitting it involves shifting each bit of the data[7:0] bus, plus the start and stop bits, out of a shift register on to the serial line.
+ * The transmitted output attains the same bit for cyclesPerSymbol cycles.
  * @param CLOCK_FREQ -> clock frequency
  * @param BAUD_RATE -> baud rate, represents the number of bits per second that can be received
  * SYMBOL_EDGE_TIME: width of a bit in cycles of the system clock -> CLOCK_FREQ / BAUD_RATE
  */
 
-class uart_transmitter(val CLOCK_FREQ: Int = 1000, val BAUD_RATE: Int = 100) extends Module {
+class uart_transmitter(val CLOCK_FREQ: Int = 125000000, val BAUD_RATE: Int = 115200) extends Module {
   val io = IO(new Bundle {
     val reset = Input(Bool())
     val data_in = Input(UInt(8.W))
@@ -35,9 +36,6 @@ class uart_transmitter(val CLOCK_FREQ: Int = 1000, val BAUD_RATE: Int = 100) ext
   val bit_cnt = Counter(10)
   val clkcyc_cnt = Counter(cyclesPerSymbol.toInt)
 
-  // Output the same bit for cyclesPerSymbol cycles
-  val tx_Reg = RegInit(1.B)
-
 
   //--|Signal Assignments|------------------------------------------------------
   // symbol_edge -> when cycle counter hits the number of cycles of one symbol (bit) transmission
@@ -53,7 +51,7 @@ class uart_transmitter(val CLOCK_FREQ: Int = 1000, val BAUD_RATE: Int = 100) ext
   io.ready := !tx_running
 
   // io.serial_out -> The output signal has to be 1. the first bit of shift register; 2. within the entire cycle of symbol
-  io.serial_out := tx_shift(0) & tx_Reg
+  io.serial_out := tx_shift(0)
 
 
   //--|Counters|----------------------------------------------------------------
@@ -65,13 +63,14 @@ class uart_transmitter(val CLOCK_FREQ: Int = 1000, val BAUD_RATE: Int = 100) ext
     clkcyc_cnt.inc()
   }
 
-  // bit -> counts down 1 for every character whenever cycles-per-symbol is counted (1 bit is sent)
+  // bit -> counts down 1 for every character whenever cycles of cycles-per-symbol are counted (1 bit is sent)
   when (start) {
     bit_cnt.value := 10.U
   }
-  .elsewhen (symbol_edge) {
+  .elsewhen (symbol_edge && tx_running) {
     bit_cnt.value := bit_cnt.value - 1.U
   }
+
 
   //--|Shift Register|----------------------------------------------------------
   when (io.reset) {
@@ -80,10 +79,10 @@ class uart_transmitter(val CLOCK_FREQ: Int = 1000, val BAUD_RATE: Int = 100) ext
   when (start) {
     tx_shift := Cat(1.U, io.data_in, 0.U)
   }
-  .elsewhen (symbol_edge) {
+  .elsewhen (symbol_edge && tx_running) {
     tx_shift := Cat(1.U, tx_shift(9, 1))
   }
-  
+
 }
 
 object getVerilog extends App {
