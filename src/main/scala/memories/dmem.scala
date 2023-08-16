@@ -22,9 +22,7 @@ class DMEM extends Module {
   })
 
   val mem = SyncReadMem(16384, UInt(width.W))
-  // Create one write port (addrA) and one read port (addrB)
-  // mem.write(io.addrA, io.dataInA)
-  // io.dataOutB := mem.read(io.addrB, io.enable)
+  // Create one write port (addr) and one read port (addr)
 
   when (io.enable) {
     for (i <- 0 until 4) {
@@ -32,7 +30,8 @@ class DMEM extends Module {
         mem.write(io.addr((i * 8.U + 8.U - 1.U), (i * 8.U)), io.dataIn((i * 8.U + 8.U - 1.U), (i * 8.U)))
       }
     }
-    io.dataOut := mem.read(io.addr, io.enable)
   }
+  
+  io.dataOut := mem.read(io.addr, io.enable)
 
 }
