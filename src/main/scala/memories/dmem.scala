@@ -1,38 +1,38 @@
 // See README.md for license details.
 
-package imem
+package dmem
 
 import chisel3._
 import chisel3.util._
 
 
 /**
- * IMEM for RISC-V Core
+ * DMEM for RISC-V Core
  */
 
-class IMEM extends Module {
+class DMEM extends Module {
   val width: Int = 32
   val io = IO(new Bundle {
     val enable = Input(Bool())
     val write = Input(Bool())
     val we = Input(UInt(4.W))
-    val addrA = Input(UInt(14.W))
-    val addrB = Input(UInt(14.W))
-    val dataInA = Input(UInt(width.W))
-    val dataOutB = Output(UInt(width.W))
+    val addr = Input(UInt(14.W))
+    val dataIn = Input(UInt(width.W))
+    val dataOut = Output(UInt(width.W))
   })
 
   val mem = SyncReadMem(16384, UInt(width.W))
   // Create one write port (addrA) and one read port (addrB)
   // mem.write(io.addrA, io.dataInA)
-  io.dataOutB := mem.read(io.addrB, io.enable)
+  // io.dataOutB := mem.read(io.addrB, io.enable)
 
   when (io.enable) {
     for (i <- 0 until 4) {
       when (io.we(i)) {
-        mem.write(io.addrA((i * 8.U + 8.U - 1.U), (i * 8.U)), io.dataInA((i * 8.U + 8.U - 1.U), (i * 8.U)))
+        mem.write(io.addr((i * 8.U + 8.U - 1.U), (i * 8.U)), io.dataIn((i * 8.U + 8.U - 1.U), (i * 8.U)))
       }
     }
+    io.dataOut := mem.read(io.addr, io.enable)
   }
 
 }
