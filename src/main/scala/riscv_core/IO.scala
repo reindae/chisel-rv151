@@ -16,6 +16,7 @@ class IO extends Module {
     val rst = Input(Bool())
     val data_addr = Input(UInt(32.W))
     val s3_inst = Input(UInt(32.W))
+    val prev_PCSel = Input(UInt(32.W))
     val cycle_p = Output(UInt(32.W))
     val inst_p = Output(UInt(32.W))
     val corr_B_p = Output(UInt(32.W))

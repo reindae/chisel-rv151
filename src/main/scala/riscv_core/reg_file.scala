@@ -7,7 +7,7 @@ import chisel3.util._
 import chisel3.stage.ChiselStage
 
 /**
- * branch comparator for RISC-V Core
+ * register file for RISC-V Core
  */
 
 class reg_file extends Module {

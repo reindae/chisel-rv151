@@ -10,7 +10,7 @@ import chisel3.util._
  * bios memory for RISC-V Core
  */
 
-class BIOS extends Module {
+class BIOS_MEM extends Module {
   val io = IO(new Bundle {
     val enA = Input(Bool())
     val enB = Input(Bool())
@@ -28,5 +28,7 @@ class BIOS extends Module {
   io.dataOutB := mem.read(io.addrB, io.enB)
 
   // setup simulation
+  
+
 
 }
