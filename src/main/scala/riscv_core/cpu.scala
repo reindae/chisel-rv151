@@ -20,9 +20,11 @@ import mux_rs1._
 import mux_rs2._
 import mux_wbsel._
 import reg_file._
-import bios_mem._
+import uart._
+
 import chisel3._
 import chisel3.util._
+import chisel3.stage.ChiselStage
 
 
 /**
@@ -39,62 +41,8 @@ class cpu(val CPU_CLOCK_FREQ: Int = 50000000, val BAUD_RATE: Int = 115200, val R
 
   val tohost_csr = RegInit(0.U(32.W))
 
-  // BIOS Memory
-  // Synchronous read: read takes one cycle
-  // Synchronous write: write takes one cycle
-  val bios_addra, bios_addrb = Wire(UInt(12.W))
-  val bios_douta, bios_doutb = Wire(UInt(32.W))
-  val bios_ena, bios_enb = Wire(UInt(1.W))
-  // Instanitiate BIOS MEMORY
-  val BIOS_MEM = Module(new BIOS())
-  // This is for instruction memory (pc)
-  BIOS_MEM.enA := 1.U
-  BIOS_MEM.addrA := bios_addra
-  BIOS_MEM.dataOutA := bios_douta
-  // This is for data memory (alu)
-  BIOS_MEM.enB := 1.U
-  BIOS_MEM.addrB := bios_addrb
-  BIOS_MEM.dataOutB := bios_doutb
-
-
-  // Data Memory
-  // Synchronous read: read takes one cycle
-  // Synchronous write: write takes one cycle
-  // Write-byte-enable: select which of the four bytes to write
-  val dmem_addr = Wire(UInt(14.W))
-  val dmem_din, dmem_dout = Wire(UInt(32.W))
-  val dmem_we = Wire(UInt(4.W))
-  // Instanitiate DATA MEMORY
-  val DMEM = Module(new DMEM())
-  DMEM.enable := 1.U
-  DMEM.we := dmem_we
-  DMEM.addr := dmem_addr
-  DMEM.dataIn := dmem_din
-  DMEM.dataOut := dmem_dout
-
-
-  // Instruction Memory
-  // Synchronous read: read takes one cycle
-  // Synchronous write: write takes one cycle
-  // Write-byte-enable: select which of the four bytes to write
-  val imem_dina, imem_doutb = Wire(UInt(32.W))
-  val imem_addra, imem_addr = Wire(UInt(14.W))
-  val imem_we = Wire(UInt(4.W))
-  val imem_ena = Wire(UInt(1.W))
-  // Instanitiate INSTRUCTION MEMORY
-  val IMEM = Module(new IMEM())
-  IMEM.enable := 1.UInt
-  // data memory
-  IMEM.we := imem_we
-  IMEM.addrA := imem_addra
-  IMEM.dataInA := imem_dina
-  // instruction memory
-  IMEM.addrB := imem_addra
-  IMEM.dataOutB := imem_doutb
-
-
   // CONTROL SIGNAL
-  val PCSel, BrUn, BrEq, BrLt, ASel, BSel, CSRSel, CSEWEn, RegWEn, SigEx, has_rd = Wire(UInt(1.W))
+  val PCSel, BrUn, BrEq, BrLt, ASel, BSel, CSRSel, CSRWEn, RegWEn, SigEx, has_rd = Wire(UInt(1.W))
   val ALUSel, DMEM_WEn, DMEM_out = Wire(UInt(4.W))
   val DMEM_in = Wire(UInt(32.W))
   val WBSel = Wire(UInt(2.W))
@@ -154,7 +102,7 @@ class cpu(val CPU_CLOCK_FREQ: Int = 50000000, val BAUD_RATE: Int = 115200, val R
 
   // Stage 1 mux & register
   val s1_reg = RegInit(0.U(32.W))
-  when (PCSel) {
+  when (PCSel === 1.U) {
     s1_reg := s2_alu
   }
   .otherwise {
@@ -176,44 +124,42 @@ class cpu(val CPU_CLOCK_FREQ: Int = 50000000, val BAUD_RATE: Int = 115200, val R
     whether we need to add nop instruction
     Modify: implement the branch predictor.
   */
-  prev_PCSel = Wire(UInt(1.W))
-  when (prev_PCSel) {
+  val prev_PCSel = RegInit(0.U(32.W))
+  when (true.B) {
+    prev_PCSel := PCSel
+  }
+  when (prev_PCSel === 1.U) {
     s2_inst := 0x13.U(32.W)
   }
   .otherwise {
     s2_inst := imem_out
   }
-  val PCSel_reg = RegInit(0.U(32.W))
-  when (true.B) {
-    PCSel_reg := PCSel
-  }
-  prev_PCSel := PCSel_reg
 
 
   /*
     TODO: implement the forwording logic for rs1 and rs2.
     check if stage 3 instruction contains rd and equal to rs1 and rs2.
   */
-  when (has_rd && (s3_rd === s2_rs1)) {
+  when ((has_rd === 1.U) && (s3_rd === s2_rs1)) {
     rs1_val := s3_alu
   }
   .otherwise {
     rs1_val := s2_reg_rs1
   }
-  when (has_rd && (s3_rd === s2_rs2)) {
+  when ((has_rd === 1.U) && (s3_rd === s2_rs2)) {
     rs2_val := s3_alu
   }
   .otherwise {
     rs2_val := s2_reg_rs2
   }
 
-  when (RegWEn && (s3_rd === s2_rs1)) {
+  when ((RegWEn === 1.U) && (s3_rd === s2_rs1)) {
     s2_reg_rs1 := reg_wb
   }
   .otherwise {
     s2_reg_rs1 := rd1
   }
-  when (RegWEn && (s3_rd === s2_rs2)) {
+  when ((RegWEn === 1.U) && (s3_rd === s2_rs2)) {
     s2_reg_rs2 := reg_wb
   }
   .otherwise {
@@ -225,58 +171,58 @@ class cpu(val CPU_CLOCK_FREQ: Int = 50000000, val BAUD_RATE: Int = 115200, val R
   // Asynchronous read: read data is available in the same cycle
   // Synchronous write: write takes one cycle
   val RF = Module(new reg_file())
-  RF.we := RegWEn
-  RF.rs1 := s2_rs1
-  RF.rs2 := s2_rs2
-  RF.rd1 := rd1
-  RF.rd2 := rd2
-  RF.wa := s3_rd
-  RF.wd := reg_wb
+  RF.io.we := RegWEn
+  RF.io.rs1 := s2_rs1
+  RF.io.rs2 := s2_rs2
+  RF.io.rd1 := rd1
+  RF.io.rd2 := rd2
+  RF.io.wa := s3_rd
+  RF.io.wd := reg_wb
 
 
   // Instanitiate CSR module
   val csr_reg = RegInit(0.U(32.W))
-  when (CSRSel) {
+  when (CSRSel === 1.U) {
     csr_reg := Cat(0.U(27.W), s2_inst(19,15))
   }
   .otherwise {
     csr_reg := s2_reg_rs1
   }
-  when (CSRWEn) {
+  when (CSRWEn === 1.U) {
     tohost_csr := csr_reg
   }
 
   
   // Instanitiate Branch comparator module
   val BRCP = Module(new branch_comp())
-  BRCP.rs1 := rs1_val
-  BRCP.rs2 := rs2_val
-  BRCP.BrUn := BrUn
-  BRCP.BrEq := BrEq
-  BRCP.BrLt := BrLt
+  BRCP.io.rs1 := rs1_val
+  BRCP.io.rs2 := rs2_val
+  BRCP.io.BrUn := BrUn
+  BRCP.io.BrEq := BrEq
+  BRCP.io.BrLt := BrLt
 
 
   // Instanitiate Immediate generator module
-  val IMMGEN = module(new imm_gen())
-  IMMGEN.inst := s2_inst
-  IMMGEN.imm := s2_imm
+  val IMMGEN = Module(new imm_gen())
+  IMMGEN.io.inst := s2_inst
+  IMMGEN.io.imm := s2_imm
 
 
   // Instanitiate ALU module
-  val ALU = module(new alu())
-  ALU.alu_sel := ALUSel
-  ALU.result := s2_alu
-  when (ASel) {
-    ALU.in_A := s2_pc
+  val ALU = Module(new alu())
+  ALU.io.alu_sel := ALUSel
+  ALU.io.result := s2_alu
+  when (ASel === 1.U) {
+    ALU.io.in_A := s2_pc
   }
   .otherwise {
-    ALU.in_A := rs1_val
+    ALU.io.in_A := rs1_val
   }
-  when (BSel) {
-    ALU.in_A := s2_imm
+  when (BSel === 1.U) {
+    ALU.io.in_A := s2_imm
   }
   .otherwise {
-    ALU.in_A := rs2_val
+    ALU.io.in_A := rs2_val
   }
 
 
@@ -291,15 +237,15 @@ class cpu(val CPU_CLOCK_FREQ: Int = 50000000, val BAUD_RATE: Int = 115200, val R
   val UART = Module(new uart(CPU_CLOCK_FREQ, BAUD_RATE))
   UART.reset := io.reset
   // UART RECEIVER
-  UART.serial_in := io.serial_in
-  UART.data_out := uart_rx_data_out
-  UART.data_out_valid := uart_rx_data_out_valid
-  UART.data_out_ready := uart_rx_data_out_ready
+  UART.io.serial_in := io.serial_in
+  UART.io.data_out := uart_rx_data_out
+  UART.io.data_out_valid := uart_rx_data_out_valid
+  UART.io.data_out_ready := uart_rx_data_out_ready
   // UART TRANSMITTER
-  UART.serial_out := io.serial_out
-  UART.data_in := uart_tx_data_in
-  UART.data_in_valid := uart_tx_data_in_valid
-  UART.data_in_ready := uart_tx_data_in_ready
+  UART.io.serial_out := io.serial_out
+  UART.io.data_in := uart_tx_data_in
+  UART.io.data_in_valid := uart_tx_data_in_valid
+  UART.io.data_in_ready := uart_tx_data_in_ready
 
 
   // Instruction register
@@ -320,39 +266,39 @@ class cpu(val CPU_CLOCK_FREQ: Int = 50000000, val BAUD_RATE: Int = 115200, val R
 
   // Instanitiate CONTROL LOGIC
   val CTRL = Module(new control())
-  CTRL.curr_inst := s2_inst
-  CTRL.prev_inst := s3_inst
-  CTRL.BrEq := BrEq
-  CTRL.BrLt := BrLt
-  CTRL.curr_ALU_low2 := s2_alu(1,0)
-  CTRL.prev_ALU_low2 := s3_alu(1,0)
-  CTRL.PCSel := PCSel
-  CTRL.ALUSel := ALUSel
-  CTRL.BrUn := BrUn
-  CTRL.ASel := ASel
-  CTRL.BSel := BSel
-  CTRL.CSRSel := CSRSel
-  CTRL.CSRWEn := CSRWEn
-  CTRL.DMEM_in := DMEM_in
-  CTRL.DMEM_WEn := DMEM_WEn
-  CTRL.DMEM_out := DMEM_out
-  CTRL.sign_ext := SigEx
-  CTRL.WBSel := WBSel
-  CTRL.RegWEn = RegWEn
-  CTRL.has_rd = has_rd
+  CTRL.io.curr_inst := s2_inst
+  CTRL.io.prev_inst := s3_inst
+  CTRL.io.BrEq := BrEq
+  CTRL.io.BrLt := BrLt
+  CTRL.io.curr_ALU_low2 := s2_alu(1,0)
+  CTRL.io.prev_ALU_low2 := s3_alu(1,0)
+  CTRL.io.PCSel := PCSel
+  CTRL.io.ALUSel := ALUSel
+  CTRL.io.BrUn := BrUn
+  CTRL.io.ASel := ASel
+  CTRL.io.BSel := BSel
+  CTRL.io.CSRSel := CSRSel
+  CTRL.io.CSRWEn := CSRWEn
+  CTRL.io.DMEM_in := DMEM_in
+  CTRL.io.DMEM_WEn := DMEM_WEn
+  CTRL.io.DMEM_out := DMEM_out
+  CTRL.io.sign_ext := SigEx
+  CTRL.io.WBSel := WBSel
+  CTRL.io.RegWEn := RegWEn
+  CTRL.io.has_rd := has_rd
 
 
   // Instanitiate IO
   val cycle_p, inst_p, corr_B_p, total_B_p = RegInit(0.U(32.W))
   val IO = Module(new IO())
-  IO.rst := io.reset
-  IO.data_addr = s2_alu
-  IO.s3_inst := s3_inst
-  IO.prev_PCSel := prev_PCSel
-  IO.cycle_p := cycle_p
-  IO.inst_p := inst_p
-  IO.corr_B_p := corr_B_p
-  IO.total_B_p := total_B_p
+  IO.io.rst := io.reset
+  IO.io.data_addr := s2_alu
+  IO.io.s3_inst := s3_inst
+  IO.io.prev_PCSel := prev_PCSel
+  IO.io.cycle_p := cycle_p
+  IO.io.inst_p := inst_p
+  IO.io.corr_B_p := corr_B_p
+  IO.io.total_B_p := total_B_p
 
 
   // Control signal for stage 3
@@ -376,3 +322,82 @@ class cpu(val CPU_CLOCK_FREQ: Int = 50000000, val BAUD_RATE: Int = 115200, val R
   }
 
 }
+
+object getVerilog extends App {
+  (new ChiselStage).emitVerilog(new cpu())
+}
+
+
+  // NON-ASIC-RELATED
+  // BIOS Memory
+  // Synchronous read: read takes one cycle
+  // Synchronous write: write takes one cycle
+  /*
+    val bios_addra, bios_addrb = Wire(UInt(12.W))
+    val bios_douta, bios_doutb = Wire(UInt(32.W))
+    val bios_ena, bios_enb = Wire(UInt(1.W))
+  */
+  // Instanitiate BIOS MEMORY
+  /*
+    val BIOS_MEM = Module(new BIOS())
+  */
+  // This is for instruction memory (pc)
+  /*
+    val BIOS_MEM = Module(new BIOS())
+    BIOS_MEM.io.enA := 1.U
+    BIOS_MEM.io.addrA := bios_addra
+    BIOS_MEM.io.dataOutA := bios_douta
+  */
+  // This is for data memory (alu)
+  /*
+    BIOS_MEM.io.enB := 1.U
+    BIOS_MEM.io.addrB := bios_addrb
+    BIOS_MEM.io.dataOutB := bios_doutb
+  */
+
+  // Data Memory
+  // Synchronous read: read takes one cycle
+  // Synchronous write: write takes one cycle
+  // Write-byte-enable: select which of the four bytes to write
+  /*
+    val dmem_addr = Wire(UInt(14.W))
+    val dmem_din, dmem_dout = Wire(UInt(32.W))
+    val dmem_we = Wire(UInt(4.W))
+  */
+  // Instanitiate DATA MEMORY
+  /*
+    val DMEM = Module(new DMEM())
+    DMEM.io.enable := 1.U
+    DMEM.io.we := dmem_we
+    DMEM.io.addr := dmem_addr
+    DMEM.io.dataIn := dmem_din
+    DMEM.io.dataOut := dmem_dout
+  */
+
+
+  // Instruction Memory
+  // Synchronous read: read takes one cycle
+  // Synchronous write: write takes one cycle
+  // Write-byte-enable: select which of the four bytes to write
+  /*
+    val imem_dina, imem_doutb = Wire(UInt(32.W))
+    val imem_addra, imem_addr = Wire(UInt(14.W))
+    val imem_we = Wire(UInt(4.W))
+    val imem_ena = Wire(UInt(1.W))
+  */
+  // Instanitiate INSTRUCTION MEMORY
+  /*
+    val IMEM = Module(new IMEM())
+    IMEM.io.enable := 1.U
+  */
+  // data memory
+  /*
+    IMEM.io.we := imem_we
+    IMEM.io.addrA := imem_addra
+    IMEM.io.dataInA := imem_dina
+  */
+  // instruction memory
+  /*
+    IMEM.io.addrB := imem_addra
+    IMEM.io.dataOutB := imem_doutb
+  */

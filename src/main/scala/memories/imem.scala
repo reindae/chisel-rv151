@@ -30,7 +30,7 @@ class IMEM extends Module {
   when (io.enable) {
     for (i <- 0 until 4) {
       when (io.we(i)) {
-        mem.write(io.addrA((i * 8.U + 8.U - 1.U), (i * 8.U)), io.dataInA((i * 8.U + 8.U - 1.U), (i * 8.U)))
+        mem.write(io.addrA((i.U * 8.U + 8.U - 1.U), (i.U * 8.U)), io.dataInA((i.U * 8.U + 8.U - 1.U), (i.U * 8.U)))
       }
     }
   }

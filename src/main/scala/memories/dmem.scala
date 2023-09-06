@@ -27,7 +27,7 @@ class DMEM extends Module {
   when (io.enable) {
     for (i <- 0 until 4) {
       when (io.we(i)) {
-        mem.write(io.addr((i * 8.U + 8.U - 1.U), (i * 8.U)), io.dataIn((i * 8.U + 8.U - 1.U), (i * 8.U)))
+        mem.write(io.addr((i.U * 8.U + 8.U - 1.U), (i.U * 8.U)), io.dataIn((i.U * 8.U + 8.U - 1.U), (i.U * 8.U)))
       }
     }
   }
