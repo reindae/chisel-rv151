@@ -1,3 +1,0 @@
-set expand-environment-variables on
-source $MASTERDIR/adm/class.joverc
-
